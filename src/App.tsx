@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 
 import { MapContainer, TileLayer, Circle } from 'react-leaflet'
@@ -6,6 +6,8 @@ import { MapContainer, TileLayer, Circle } from 'react-leaflet'
 function App() {
   const [playerPosition, setPlayerPosition] = useState<[number, number] | null>(null)
   const [accuracy, setAccuracy] = useState(0)
+  const [zone, setZone] = useState<{center: [number, number], radius: number} | null>(null)
+  const [nextZone, setNextZone] = useState<{center: [number, number], radius: number} | null>(null)
 
   function getLocation() {
     if (!navigator.geolocation) {
@@ -27,6 +29,30 @@ function App() {
     alert('Location enabled but no location detected')
   }
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try{
+        const response = await fetch("http://127.0.0.1:5000/");
+
+        if(!response.ok){
+          console.log(`Error ${response.status}`)
+          throw new Error(`HTTP Error. Status: ${response.status}`);
+        }
+
+        const json = await response.json();
+
+        setZone(json.zone);
+        setNextZone(json.next_zone);
+      } catch(err) {
+        console.log(`Error ${err}`);
+      }
+    }
+    setInterval(fetchData, 1000);
+  }, [])
+
+
+  
+
   return (
     <>
       <h1>Game</h1>
@@ -36,7 +62,23 @@ function App() {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <Circle center={[-31.9800, 115.8179]} color="red" weight={1} fillColor="#f03" fillOpacity={0.1} radius={500} />
+        {zone && ( 
+          <Circle 
+            center={zone.center} 
+            color="red" 
+            weight={1} 
+            fillColor="#f03" 
+            fillOpacity={0.1} 
+            radius={zone.radius} />
+        )}
+        {nextZone && ( 
+          <Circle 
+            center={nextZone.center} 
+            color="black" 
+            weight={1} 
+            fillOpacity={0} 
+            radius={nextZone.radius} />
+        )}
         {playerPosition && (
           <Circle
             center={playerPosition}
